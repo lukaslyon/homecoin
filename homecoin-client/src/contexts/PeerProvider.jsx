@@ -56,9 +56,9 @@ export const PeerProvider = (props) => {
             nodes.forEach((n) => {
                 if (n !== id){
                     const connection = connect_to_peer_by_id(peer, peerIds, n)
-                    if (connections !== null) {
+                    if (connection !== null) {
                         setConnections((conn) => [...conn, connection])
-                        setPeerIds((pids) => [...peerIds, connection.peer])
+                        setPeerIds((pids) => [...pids, connection.peer])
                     }
                 }   
             })
