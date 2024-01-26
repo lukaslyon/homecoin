@@ -15,14 +15,19 @@ import { PeerContext } from "../contexts/PeerProvider";
 import { checkSignalServer } from "../utilities/peerjs";
 
 import { useDisclosure } from "@chakra-ui/react";
+import { ChainContext } from "../contexts/ChainProvider";
+import { KeyContext } from "../contexts/KeyProvider";
 
 export const SignalServerSelector = (props) => {
 
     const { signalServer, setSignalServer} = useContext(PeerContext)
-    const [userSelectedServer, setUserSelectedServer] = useState("")
+    const [userSelectedServer, setUserSelectedServer] = useState("http://ec2-16-170-232-139.eu-north-1.compute.amazonaws.com:9000/signal/")
     const [signalServerError, setSignalServerError] = useState(false)
     const { isOpen, onOpen, onClose } = useDisclosure()
     const serverToast = useToast()
+
+    const {chain} = useContext(ChainContext)
+    const {keyPair} = useContext(KeyContext)
 
     const handleChangeUserSelectedServer = (event) => {
         setUserSelectedServer(event.target.value)

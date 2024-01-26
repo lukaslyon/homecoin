@@ -9,6 +9,7 @@
   "author": "lukas lyon",
   "license": "ISC",
   "dependencies": {
-    "peer": "^1.0.2"
+    "peer": "^1.0.2",
+    "pm2": "^5.3.1"
   }
 }

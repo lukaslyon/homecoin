@@ -10,7 +10,7 @@ export const NewTransactionCard = (props) => {
         <div className="card-header">
             New Transaction
         </div>
-        <Button colorScheme="blue">
+        <Button colorScheme="blue" onClick={props.onModalOpen}>
             Create
         </Button>
     </Card>

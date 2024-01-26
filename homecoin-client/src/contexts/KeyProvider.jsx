@@ -1,28 +1,29 @@
-import { useState, createContext } from "react";
+import { useState, createContext, useEffect } from "react";
+import { generateKeyPair, publicKeyToHex, privateKeyToHex } from "../crypto/subtle";
+import useIndexedDB from "../hooks/useIndexedDB";
 
-const KeyContext = React.createContext()
+export const KeyContext = createContext()
 
-const KeyProvider = (props) => {
-    const [keyPair, setKeyPair] = useState(null);
+export const KeyProvider = (props) => {
+    const [keyPair, setKeyPair, keyPairLoaded] = useIndexedDB("keyPair", "homecoin", {})
+    const [publicHex, setPublicHex] = useState("")
 
     useEffect(() => {
-        const keypair = window.crypto.subtle.generateKey(
-            {
-                name: "RSASSA-PKCS1-v1_5",
-                modulusLength: 2048,
-                hash: "SHA-256",
-                publicExponent: new Uint8Array([1,0,1])
-            },
-            false,
-            ['sign', 'verify']
-        );
-        setKeyPair(keypair);
-    },[])
+        if ((Object.keys(keyPair).length === 0)&&keyPairLoaded){
+            generateKeyPair()
+            .then((kp) => {
+                setKeyPair(kp)
+                publicKeyToHex(kp.publicKey).then((hex) => {
+                    setPublicHex(hex)
+                })
+            })
+        }
+    },[keyPair, keyPairLoaded])
 
     return (
-        <KeyKontext.Provider value={{loggedIn, setLoggedIn}}>
+        <KeyContext.Provider value={{keyPair, publicHex}}>
             {props.children}
-        </KeyKontext.Provider>
+        </KeyContext.Provider>
     )
 
 }

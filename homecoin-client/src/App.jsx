@@ -14,9 +14,9 @@ function App() {
   })
 
   return (
-    <ChainProvider>
+    <>
       {connected ? <Dashboard /> : <Login />}
-    </ChainProvider>
+    </>
   )
 }
 

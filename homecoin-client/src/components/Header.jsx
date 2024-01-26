@@ -11,7 +11,7 @@ export const Header = (props) => {
     return(
         <div className="page-header">
             <div className="stat-cards">
-                <NewTransactionCard />
+                <NewTransactionCard onModalOpen={props.onModalOpen}/>
                 <HomecoinBalance />
                 <PendingTransactions />
                 <ConnectedPeerCounter />

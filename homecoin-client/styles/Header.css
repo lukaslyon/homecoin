@@ -2,9 +2,6 @@
     display: flex;
     align-items: flex-start;
     align-self: stretch;
-    margin-top: 18px;
-    margin-left: 12px;
-    margin-right: 12px;
 }
 
 .stat-cards {
@@ -45,7 +42,6 @@
 
 .settings-box{
     display: flex;
-    padding: 10px;
     justify-content: flex-end;
     align-items: flex-start;
     gap: 10px;
