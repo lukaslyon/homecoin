@@ -17,7 +17,6 @@ import axios from 'axios'
 export const checkSignalServer = (url) => {
     const signalServerResult = new Promise((resolve, reject) => {
         axios.get(url).then((res) => {
-            console.log(res.data)
             if (JSON.stringify(res.data) === JSON.stringify({"name":"PeerJS Server","description":"A server side element to broker connections between PeerJS clients.","website":"https://peerjs.com/"})) resolve(true)
             else reject(false)
         }).catch((err) => {

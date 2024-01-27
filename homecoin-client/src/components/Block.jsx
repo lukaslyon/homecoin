@@ -1,5 +1,12 @@
 import { useContext, useState } from "react";
-import { Card, CardHeader, CardBody, CardFooter, Button, useToast, Spinner, Badge } from '@chakra-ui/react'
+import { Card, CardHeader, CardBody, CardFooter, Button, useToast, Spinner, Badge, Box } from '@chakra-ui/react'
+import {
+    Accordion,
+    AccordionItem,
+    AccordionButton,
+    AccordionPanel,
+    AccordionIcon,
+  } from '@chakra-ui/react'
 import { Heading, Text } from "@chakra-ui/react";
 import { ChainContext } from "../contexts/ChainProvider";
 import { Transaction } from "./Transaction";
@@ -18,7 +25,6 @@ export const Block = (props) => {
     const onClickMine = async () => {
         setMining(true)
         mineBlock(props.block).then((res) => {
-            console.log(res)
             if (res === "success"){
                 mineToast({
                     title: 'Block mined',
@@ -41,7 +47,21 @@ export const Block = (props) => {
                 </Heading>
             </CardHeader>
             <CardBody className="block-card-contents">
-                <Transaction tx={props.block.tx} />
+                <Accordion allowToggle={true}>
+                {props.block.tx.map((t) => {
+                    return(<AccordionItem key={t.contents.timestamp}>
+                        <AccordionButton>
+                            <Box as="span" flex='1' textAlign='left'>
+                                {t.contents.label}
+                            </Box>
+                            <AccordionIcon />
+                        </AccordionButton>
+                        <AccordionPanel>
+                            <Transaction tx={t}/>
+                        </AccordionPanel>
+                    </AccordionItem>)
+                })}
+                </Accordion>
             </CardBody>
             <CardFooter className="block-card-footer">
                 {(props.block.metadata.mineTime===null) ? (!mining) ? <Button onClick = {onClickMine}>Mine</Button> : <Spinner /> : <Badge colorScheme="green">Mined</Badge>}

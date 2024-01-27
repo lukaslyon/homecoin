@@ -21,10 +21,11 @@ export const ChainProvider = (props) => {
     const { publicHex } = useContext(KeyContext)
 
     const mineBlock = async (block) => {
+        block.addRewardTransaction(publicHex)
         const mineResult = await block.mine()
         updateUnminedBlocks((unminedBlocks) => {
             return(unminedBlocks.filter((b) => {
-                return(b.header.merkleRoot !== block.header.merkleRoot)
+                return(b.id !== block.id)
             }))
         })
         updateChain((chain) => {
@@ -45,12 +46,14 @@ export const ChainProvider = (props) => {
         if (chain.chain.length !== 0) {
             let val = 0
             chain.chain.forEach((b) => {
-                if (b.tx.contents.to === publicHex){
-                    val += Number(b.tx.contents.amount)
-                }
-                else if (b.tx.contents.from === publicHex){
-                    val -= Number(b.tx.contents.amount)
-                }
+                b.tx.forEach((t) => {
+                    if (t.contents.to === publicHex){
+                        val += Number(t.contents.amount)
+                    }
+                    else if (t.contents.from === publicHex){
+                        val -= Number(t.contents.amount)
+                    }
+                })
             })
             setHomecoinBalance(val)
 

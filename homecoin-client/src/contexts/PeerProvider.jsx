@@ -58,7 +58,7 @@ export const PeerProvider = (props) => {
                 break;
             case requestTypes.SEND_NEW_BLOCK:
                 updateUnminedBlocks(currentBlocks => {
-                    if (!currentBlocks.some(b => b.header.merkleRoot === data.data.block.header.merkleRoot)) {
+                    if (!currentBlocks.some(b => b.header.id === data.data.block.header.id)) {
                         return [...currentBlocks, reconstructBlock(data.data.block)];
                     } else {
                         return currentBlocks;
@@ -74,7 +74,7 @@ export const PeerProvider = (props) => {
                 setSuppressSendUnminedBlocks(true)
                 data.data.blocks.forEach((b) => {
                     updateUnminedBlocks(currentBlocks => {
-                        if (!currentBlocks.some(b => b.header.merkleRoot === data.data.block.header.merkleRoot)) {
+                        if (!currentBlocks.some(b => b.header.id === data.data.block.header.id)) {
                             return [...currentBlocks, reconstructBlock(data.data.block)];
                         } else {
                             return currentBlocks;
@@ -164,16 +164,15 @@ export const PeerProvider = (props) => {
         block.verify()
         .then((valid) => {
             if (valid){
-                block.tx.verify()
+                block.verifyTransactions()
                 .then((valid) => {
                     if (valid){
                         setLastBlockHash((_hash) =>{
-                            console.log(block.header.prevHash)
                             updateChain((_chain) => {
                                 if (block.header.prevHash === _hash){
                                     updateUnminedBlocks((unminedBlocks) => {
                                         return(unminedBlocks.filter((b) => {
-                                            return(b.header.merkleRoot !== block.header.merkleRoot)
+                                            return(b.header.id !== block.header.id)
                                         }))
                                     })
                                     socializeBlock(block)
@@ -188,6 +187,9 @@ export const PeerProvider = (props) => {
                      })
                     }
                     else console.log("Transaction verification failed")
+                })
+                .catch((err) => {
+                    console.log(err)
                 })
             }
             else console.log("Proof of work verification failed")

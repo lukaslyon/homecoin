@@ -118,6 +118,9 @@ export const hexToPublicKey = (key) => {
         .then((key) => {
             res(key)
         })
+        .catch((err) => {
+            rej(err)
+        })
     })
 
 }

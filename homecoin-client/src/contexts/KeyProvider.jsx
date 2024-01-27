@@ -15,7 +15,7 @@ export const KeyProvider = (props) => {
                 setKeyPair(kp)
             })
         }
-        if (keyPairLoaded) {
+        if ((Object.keys(keyPair).length !== 0)&&keyPairLoaded) {
             publicKeyToHex(keyPair.publicKey).then((hex) => {
             setPublicHex(hex)
         })}

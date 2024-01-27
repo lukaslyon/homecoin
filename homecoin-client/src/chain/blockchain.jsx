@@ -2,6 +2,7 @@ import { digest, hexToPublicKey, sign, verifySignature } from "../crypto/subtle"
 
 const zero256Hex = 0x0000000000000000000000000000000000000000000000000000000000000000;
 const zero64Hex = 0x0000000000000000;
+export const genesisNode = "30820122300d06092a864886f70d01010105000382010f003082010a0282010100b1e383fb1960fdb8ccfe4654220d3f1c5f41d2977bf7475502d4ebc589b3543dfd8584da34a13a39299678f95df218e9262c101f12f07b780c321fa6e25be215ec25d9578c1261ad61249c6a5c8937fe01bd04c48cf906a5fe47ae244729f46b835fc2f48dbbc98bb169d8b617c58081305477abfe86e2a9e7e000593d56ce44709bba4e03ba5089f3fd3eccab94e511fece910b3604e869c952c96701834e89c59d4bb29177ecea503991dcda187b0f3d75dcf9e994443bd1c101ba68d8e4d678f18f6bf5dbe677f00bf174813bbd268bc39e457c7c28faed177e561425fe2b5e832703c09f3c10fbce678c3398a2385b1a7c45f5ac6ff354bb437fe833f9930203010001";
 
 export class Transaction{
     constructor(timestamp, from, to, amount, label){
@@ -10,7 +11,7 @@ export class Transaction{
             from: from,
             to: to,
             amount: amount,
-            label: label
+            label: label,
         }
     }
 
@@ -28,10 +29,17 @@ export class Transaction{
         return new Promise((res, rej) => {
             hexToPublicKey(this.contents.from)
             .then((key) => {
-                verifySignature(key, this.contents, this.signature)
-                .then((valid) => {
-                    res(valid)
-                })
+                if (this.contents.from === genesisNode){
+                    res(true)
+                } else {
+                    verifySignature(key, this.contents, this.signature)
+                    .then((valid) => {
+                        res(valid)
+                    })
+            }
+            })
+            .catch((err) => {
+                rej(err)
             })
         })
     }
@@ -75,6 +83,16 @@ export class Block{
         })
     }
 
+    setId = async () => {
+        digest(this.tx).then((hash) => {
+            this.header.id = hash
+        })
+    }
+
+    setIdManual = (_id) => {
+        this.header.id = _id
+    }
+
     setMerkleRootManual = (_merkleRoot) => {
         this.header.merkleRoot = _merkleRoot
     }
@@ -91,9 +109,15 @@ export class Block{
         this.metadata.mineTime = t
     }
 
+    addRewardTransaction(miner){
+        const _tx = new Transaction(Date.now(), genesisNode, miner, 1, "mining reward")
+        this.tx.push(_tx)
+    }
+
     async mine(){
         var hash
         var start = Date.now()
+        await this.setMerkleRoot()
         await digest(this.header).then((_hash) => {
             hash = _hash
         })
@@ -131,9 +155,28 @@ export class Block{
             })
         })
     }
+
+    verifyTransactions() {
+        return new Promise((res, rej) => {
+            Promise.all(this.tx.map(t => t.verify()))
+                .then(results => {
+                    // All results contains an array of booleans
+                    // Check if every result is true
+                    const allValid = results.every(result => result);
+                    res(allValid);
+                })
+                .catch(error => {
+                    rej(error);
+                });
+        });
+    }
 }
 
 export const serializeBlock = (block) => {
+    const _tx = []
+    block.tx.forEach((t) => {
+        _tx.push(serializeTransaction(t))
+    })
     return {
         "header": {
             "version": block.header.version,
@@ -141,21 +184,26 @@ export const serializeBlock = (block) => {
             "timestamp": block.header.timestamp,
             "bits": block.header.bits,
             "nonce": block.header.nonce,
-            "merkleRoot": block.header.merkleRoot
+            "merkleRoot": block.header.merkleRoot,
+            "id": block.header.id
         },
         "metadata": {
             "mineTime": block.metadata.mineTime
         },
-        "tx": serializeTransaction(block.tx)
+        "tx": _tx
     }
 }
 
 export const reconstructBlock = (blk) => {
-    const _tx = reconstructTransaction(blk.tx)
+    const _tx = []
+    blk.tx.forEach((t) => {
+        _tx.push(reconstructTransaction(t))
+    })
     const _blk = new Block(blk.header.version, blk.header.prevHash, blk.header.timestamp, blk.header.bits, _tx)
     _blk.setNonceManual(blk.header.nonce)
     _blk.setMerkleRootManual(blk.header.merkleRoot)
     _blk.setMineTimeManual(blk.metadata.mineTime)
+    _blk.setIdManual(blk.header.id)
     return(_blk)
 }
 
@@ -171,9 +219,11 @@ export class Chain{
 
         const tx = new Transaction(0, genesisNode, genesisNode, zero64Hex, "welcome home")
         tx.manualSign(genesisSignature)
-        const blk = new Block(1, zero256Hex,0,145,tx)
+        const blk = new Block(1, zero256Hex,0,145,[tx])
         await blk.setMerkleRoot()
+        await blk.setId()
         await blk.mine()
+        //console.log(blk)
 
         this.chain.push(blk)
     }

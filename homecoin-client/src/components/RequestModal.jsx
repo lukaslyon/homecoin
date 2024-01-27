@@ -53,8 +53,9 @@ import { ChainContext } from '../contexts/ChainProvider'
         const _tx = new Transaction(Date.now(), publicHex, recipient, amount, memo)
         await _tx.sign(keyPair.privateKey)
         const hash = await digest(chain.chain[chain.chain.length-1].header)
-        const _blk = new Block(1, hash, Date.now(), 145, _tx)
+        const _blk = new Block(1, hash, Date.now(), 145, [_tx])
         await _blk.setMerkleRoot()
+        await _blk.setId()
         updateUnminedBlocks([...unminedBlocks, _blk])
         props.onClose()
     }
