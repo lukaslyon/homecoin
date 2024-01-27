@@ -17,9 +17,8 @@ export const PendingTransactions = (props) => {
     return(
     <Card className="stat-card">
         <Stat>
-            <StatLabel>Pending Transactions</StatLabel>
+            <StatLabel>Pending Blocks</StatLabel>
             <StatNumber>{pendingTransactions}</StatNumber>
-            <StatHelpText>Click to view</StatHelpText>
         </Stat>
     </Card>
     )

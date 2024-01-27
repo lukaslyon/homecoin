@@ -109,6 +109,7 @@ export class Block{
         //console.log(hash)
         //console.log(`Time taken to mine: ${end-start}ms`)
         this.metadata.mineTime = end-start
+        return "success"
     }
 
     getHash(){

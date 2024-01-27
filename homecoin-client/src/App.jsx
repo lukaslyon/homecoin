@@ -10,7 +10,7 @@ function App() {
   const { connected } = useContext(PeerContext)
 
   useLayoutEffect(() => {
-    document.body.style.backgroundColor = "var(--cyan-50, #EDFDFD)";
+    document.body.style.backgroundColor = "var(--gray-200, #CBD5E0)";
   })
 
   return (

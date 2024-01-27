@@ -21,7 +21,7 @@ export const ChainProvider = (props) => {
     const { publicHex } = useContext(KeyContext)
 
     const mineBlock = async (block) => {
-        await block.mine()
+        const mineResult = await block.mine()
         updateUnminedBlocks((unminedBlocks) => {
             return(unminedBlocks.filter((b) => {
                 return(b.header.merkleRoot !== block.header.merkleRoot)
@@ -30,6 +30,7 @@ export const ChainProvider = (props) => {
         updateChain((chain) => {
             return(new Chain([...chain.chain, block]))
         })
+        return mineResult;
     }
 
     useEffect(() => {
@@ -58,7 +59,27 @@ export const ChainProvider = (props) => {
             })
         }
 
-    }, [chain, chainLoaded])
+    }, [chain, chainLoaded, publicHex])
+
+    useEffect(() => {
+        if (receivedChains.length !== 0){
+            let _length = chain.chain.length;
+            let _chain = chain;
+            receivedChains.forEach((c) => {
+                if (c.chain.length > _length){
+                    _chain = c
+                }
+            })
+
+            if (_chain !== chain){
+                updateChain(_chain)
+            }
+        }
+    },[receivedChains])
+
+    useEffect(() => {
+        setPendingTransactions(unminedBlocks.length)
+    }, [unminedBlocks])
 
     return(
         <ChainContext.Provider value={{homecoinBalance: homecoinBalance, pendingTransactions: pendingTransactions, chain: chain, updateChain: updateChain, unminedBlocks: unminedBlocks, updateUnminedBlocks: updateUnminedBlocks, receivedChains, setReceivedChains, mineBlock, lastBlockHash, setLastBlockHash}}>

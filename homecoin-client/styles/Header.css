@@ -2,13 +2,23 @@
     display: flex;
     align-items: flex-start;
     align-self: stretch;
+    gap: 22px
 }
 
 .stat-cards {
     display: flex;
-    max-width: 1100px;
+    max-width: 100%;
     align-items: flex-start;
     gap: 22px;
+    overflow-x: auto;
+    border-radius: 10px;
+    background-color: var(--gray-100, #E2E8F0);
+}
+
+.stat-cards-container{
+    border-radius: 10px;
+    width: 100%;
+    overflow: hidden;
 }
 
 .stat-card {
@@ -20,6 +30,7 @@
     align-items: flex-start;
     gap: 10px;
     flex-shrink: 0;
+    margin: 5px;
 }
 
 .card-header {
@@ -38,6 +49,7 @@
     align-items: center;
     gap: 10px;
     flex-shrink: 0;
+    margin: 5px
 }
 
 .settings-box{

@@ -13,12 +13,14 @@ export const KeyProvider = (props) => {
             generateKeyPair()
             .then((kp) => {
                 setKeyPair(kp)
-                publicKeyToHex(kp.publicKey).then((hex) => {
-                    setPublicHex(hex)
-                })
             })
         }
-    },[keyPair, keyPairLoaded])
+        if (keyPairLoaded) {
+            publicKeyToHex(keyPair.publicKey).then((hex) => {
+            setPublicHex(hex)
+        })}
+
+    },[keyPair, keyPairLoaded, publicHex])
 
     return (
         <KeyContext.Provider value={{keyPair, publicHex}}>

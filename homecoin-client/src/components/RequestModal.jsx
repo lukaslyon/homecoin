@@ -56,6 +56,7 @@ import { ChainContext } from '../contexts/ChainProvider'
         const _blk = new Block(1, hash, Date.now(), 145, _tx)
         await _blk.setMerkleRoot()
         updateUnminedBlocks([...unminedBlocks, _blk])
+        props.onClose()
     }
 
     return(
@@ -72,7 +73,7 @@ import { ChainContext } from '../contexts/ChainProvider'
                 <Select placeholder="Select recipient" value={recipient} onChange={handleChangeRecipient}>
                     {historicalPeers.map((p) => {
                         return(
-                            <option value = {p.publicKey}>
+                            <option value = {p.publicKey} key={p.label}>
                                 {p.label}
                             </option>
                         )

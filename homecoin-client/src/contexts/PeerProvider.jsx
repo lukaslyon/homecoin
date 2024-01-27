@@ -108,6 +108,12 @@ export const PeerProvider = (props) => {
             "type": requestTypes.REQUEST_BLOCKCHAIN_HASH
         })
     }
+    
+    const requestChainFromPeer = (connection) => {
+        connection.send({
+            "type": requestTypes.REQUEST_FULL_CHAIN
+        })
+    }
 
     const sendGreeting = (connection) => {
 
@@ -142,11 +148,15 @@ export const PeerProvider = (props) => {
     }
 
     const sendFullBlockchain = (connection) => {
-        connection.send({
-            "type": requestTypes.RESPONSE_FULL_CHAIN,
-            "data": {
-                "chain": serializeChain()
-            }
+
+        updateChain((_chain) => {
+            connection.send({
+                "type": requestTypes.RESPONSE_FULL_CHAIN,
+                "data": {
+                    "chain": serializeChain(_chain)
+                }
+            })
+            return _chain
         })
     }
 
@@ -206,14 +216,15 @@ export const PeerProvider = (props) => {
         // on render and on update to signalServer, create new peer object
         // todo: don't hardcode this
         if (signalServer !== ""){
-            setPeer((p) => new Peer({
+            const _id = `${publicHex.substring(0, 8)}-${publicHex.substring(12, 16)}-${publicHex.substring(56, 60)}-${publicHex.substring(60, 64)}-${publicHex.substring(64, 76)}`;
+            setPeer((p) => new Peer(_id,{
                 path: "/signal",
                 port: 9000,
                 host: "ec2-16-170-232-139.eu-north-1.compute.amazonaws.com",
                 key: "homecoin"
             }))
         }
-    },[signalServer])
+    },[signalServer, publicHex])
 
     useEffect(() => {
         if (peer !== null) {
@@ -237,6 +248,7 @@ export const PeerProvider = (props) => {
                     setPeerIds((pids) => [...pids, connection.peer])
                     //requestBlockchainHash(connection)
                     sendGreeting(connection)
+                    requestChainFromPeer(connection)
                 })
                 connection.on("close", (conn) => {
                     // update local connections on disconnect
@@ -271,6 +283,7 @@ export const PeerProvider = (props) => {
                     connection.on("open", () => {
                         //requestBlockchainHash(connection)
                         sendGreeting(connection)
+                        requestChainFromPeer(connection)
                     })
                     connection.on("error", (err) => {
                         // on connection error, remove connection from list
