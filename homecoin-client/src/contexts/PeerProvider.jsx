@@ -1,35 +1,60 @@
+// React-related imports
 import { useState, createContext, useEffect, useContext } from "react";
+
+// Third-party libraries
 import { Peer } from 'peerjs'; 
 import axios from "axios";
-import { useCookie } from "../hooks/useCookie";
-import { digest, publicKeyToHex } from "../crypto/subtle";
-import { frameData } from "framer-motion";
 
-import { Chain } from "../chain/blockchain";
+// Crypto utilities
+import { digest, publicKeyToHex } from "../crypto/subtle";
+
+// Chain and blockchain utilities
+import { Chain, reconstructBlock, reconstructChain, serializeBlock, serializeUnminedBlock, reconstructUnminedBlock, serializeChain, serializeUnminedBlocks } from "../chain/blockchain";
+
+// PeerJS utilities
 import { requestTypes } from "../utilities/peerjs";
-import { mostFrequentHashOwner } from "../utilities/peerjs";
+
+// Custom hooks
 import useIndexedDB from "../hooks/useIndexedDB";
+
+// Context providers
 import { KeyContext } from "./KeyProvider";
 import { ChainContext } from "./ChainProvider";
-import { reconstructBlock, reconstructChain, serializeBlock, serializeChain, serializeUnminedBlocks } from "../chain/blockchain";
 
 export const PeerContext = createContext()
 
 export const PeerProvider = (props) => {
-    const [peer, setPeer] = useState(null)
-    const [id, setId] = useState(0)
-    const [connected, setConnected] = useState(false)
-    const [connections, setConnections] = useState([])
-    const [peerIds, setPeerIds] = useState([])
-    const [nodes, setNodes] = useState([])
-    const [signalServer, setSignalServer] = useState("")
-    const [peerChainHashes, setPeerChainHashes] = useState({})
+    // States related to PeerJS and WebRTC connections
+    const [peer, setPeer] = useState(null);
+    const [id, setId] = useState(0);
+    const [connected, setConnected] = useState(false);
+    const [connections, setConnections] = useState([]);
+    const [peerIds, setPeerIds] = useState([]);
+    const [nodes, setNodes] = useState([]);
+    const [peerChainHashes, setPeerChainHashes] = useState({});
 
-    const [historicalPeers, setHistoricalPeers] = useIndexedDB("historicalPeers", "homecoin", [])
-    const {keyPair, publicHex} = useContext(KeyContext)
-    const { chain, updateChain, unminedBlocks, updateUnminedBlocks, setReceivedChains, lastBlockHash, setLastBlockHash } = useContext(ChainContext)
+    // States for managing data with IndexedDB
+    const [signalServer, setSignalServer] = useIndexedDB("signalServer", "homecoin", "");
+    const [historicalPeers, setHistoricalPeers] = useIndexedDB("historicalPeers", "homecoin", []);
 
-    const [suppressSendUnminedBlocks, setSuppressSendUnminedBlocks] = useState(false)
+    // States for blockchain-related data and operations
+    const { keyPair, publicHex } = useContext(KeyContext);
+    const { 
+        chain, 
+        updateChain, 
+        unminedBlocks, 
+        updateUnminedBlocks, 
+        setReceivedChains, 
+        setLastBlockHash ,
+        receivedUnminedBlock,
+        setReceivedUnminedBlock,
+        receivedMinedBlock,
+        setReceivedMinedBlock
+    } = useContext(ChainContext);
+
+    // Other state variables
+    const [suppressSendUnminedBlocks, setSuppressSendUnminedBlocks] = useState(false);
+
 
     // handle messages from peers
     const dataHandler = (data, connection) => {
@@ -57,13 +82,9 @@ export const PeerProvider = (props) => {
                 }
                 break;
             case requestTypes.SEND_NEW_BLOCK:
-                updateUnminedBlocks(currentBlocks => {
-                    if (!currentBlocks.some(b => b.header.id === data.data.block.header.id)) {
-                        return [...currentBlocks, reconstructBlock(data.data.block)];
-                    } else {
-                        return currentBlocks;
-                    }
-                });
+
+                setReceivedUnminedBlock(reconstructUnminedBlock(data.data.block))
+
                 break;
             
             case requestTypes.REQUEST_ALL_BLOCKS:
@@ -75,7 +96,7 @@ export const PeerProvider = (props) => {
                 data.data.blocks.forEach((b) => {
                     updateUnminedBlocks(currentBlocks => {
                         if (!currentBlocks.some(b => b.header.id === data.data.block.header.id)) {
-                            return [...currentBlocks, reconstructBlock(data.data.block)];
+                            return [...currentBlocks, reconstructUnminedBlock(data.data.block)];
                         } else {
                             return currentBlocks;
                         }
@@ -99,15 +120,15 @@ export const PeerProvider = (props) => {
                 break;
 
             case requestTypes.SEND_MINED_BLOCK:
-                handlePossibleMinedBlock(reconstructBlock(data.data.block))
+                setReceivedMinedBlock(reconstructBlock(data.data.block))
         }
     }
 
-    const requestBlockchainHash = (connection) => {
-        connection.send({
-            "type": requestTypes.REQUEST_BLOCKCHAIN_HASH
-        })
-    }
+    // const requestBlockchainHash = (connection) => {
+    //     connection.send({
+    //         "type": requestTypes.REQUEST_BLOCKCHAIN_HASH
+    //     })
+    // }
     
     const requestChainFromPeer = (connection) => {
         connection.send({
@@ -133,7 +154,7 @@ export const PeerProvider = (props) => {
         connection.send({
             "type": requestTypes.SEND_NEW_BLOCK,
             "data": {
-                "block": serializeBlock(block)
+                "block": serializeUnminedBlock(block)
             }
         })
     }
@@ -219,10 +240,11 @@ export const PeerProvider = (props) => {
         // todo: don't hardcode this
         if (signalServer !== ""){
             const _id = `${publicHex.substring(0, 8)}-${publicHex.substring(12, 16)}-${publicHex.substring(56, 60)}-${publicHex.substring(60, 64)}-${publicHex.substring(64, 76)}`;
+            const _url = new URL(signalServer)
             setPeer((p) => new Peer(_id,{
-                path: "/signal",
-                port: 9000,
-                host: "ec2-16-170-232-139.eu-north-1.compute.amazonaws.com",
+                path: _url.pathname,
+                port: _url.port,
+                host: _url.hostname,
                 key: "homecoin"
             }))
         }
@@ -252,9 +274,9 @@ export const PeerProvider = (props) => {
                     sendGreeting(connection)
                     requestChainFromPeer(connection)
                 })
-                connection.on("close", (conn) => {
+                connection.on("close", () => {
                     // update local connections on disconnect
-                    setConnections(conn.filter(c => c !== connection))
+                    setConnections((_connections) => _connections.filter(c => c !== connection))
                     setPeerIds(peerIds.filter(pid => pid !== connection.peer))
 
                 })
@@ -266,7 +288,6 @@ export const PeerProvider = (props) => {
     },[peer, historicalPeers])
 
     useEffect(() => {
-        // this needs work, intent was to loop over potential peers and attempt a connection
         if (nodes !== null) {
             nodes.forEach((n) => {
                 if (n !== id && !peerIds.includes(n)){
@@ -279,11 +300,10 @@ export const PeerProvider = (props) => {
                     setPeerIds((pids) => [...pids, connection.peer])
                     connection.on("close", (conn) => {
                         // update local connections on disconnect
-                        setConnections(conn.filter(c => c !== connection))
+                        setConnections((_connections) => _connections.filter(c => c !== connection))
                         setPeerIds(peerIds.filter(pid => pid !== connection.peer))
                     })
                     connection.on("open", () => {
-                        //requestBlockchainHash(connection)
                         sendGreeting(connection)
                         requestChainFromPeer(connection)
                     })
@@ -309,11 +329,32 @@ export const PeerProvider = (props) => {
         }
     }, [unminedBlocks])
 
-    // useEffect(() => {
-    //     if (chain.chain.length !== 0){
-    //         socializeBlock(chain.chain[-1])
-    //     }
-    // }, [chain])
+    useEffect(() => {
+        if (receivedUnminedBlock !== null){
+            setSuppressSendUnminedBlocks(true)
+            updateUnminedBlocks((currentBlocks) => {
+                if (!unminedBlocks.some(b => b.header.id === receivedUnminedBlock.header.id)) {
+                    return [...currentBlocks, receivedUnminedBlock];
+                } else {
+                    return currentBlocks;
+                }
+            });
+            return(() => {
+                setSuppressSendUnminedBlocks(false)
+                setReceivedUnminedBlock(null)
+            })
+        }
+    }, [receivedUnminedBlock, suppressSendUnminedBlocks, unminedBlocks])
+
+    useEffect(() => {
+        if (receivedMinedBlock !== null){
+            handlePossibleMinedBlock(receivedMinedBlock)
+        }
+
+        return(() => {
+            setReceivedMinedBlock(null)
+        })
+    }, [receivedMinedBlock])
 
     return (
         <PeerContext.Provider value={{peer: peer, 

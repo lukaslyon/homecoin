@@ -22,7 +22,7 @@ import {
   } from '@chakra-ui/react'
 import { useContext, useState } from 'react'
 import { PeerContext } from '../contexts/PeerProvider'
-import { Block, Transaction, Chain } from '../chain/blockchain'
+import { UnminedBlock, Transaction, Chain } from '../chain/blockchain'
 import { KeyContext } from '../contexts/KeyProvider'
 import { digest, publicKeyToHex } from '../crypto/subtle'
 import { ChainContext } from '../contexts/ChainProvider'
@@ -52,11 +52,12 @@ import { ChainContext } from '../contexts/ChainProvider'
     const handleSubmitTransaction = async () => {
         const _tx = new Transaction(Date.now(), publicHex, recipient, amount, memo)
         await _tx.sign(keyPair.privateKey)
-        const hash = await digest(chain.chain[chain.chain.length-1].header)
-        const _blk = new Block(1, hash, Date.now(), 145, [_tx])
-        await _blk.setMerkleRoot()
+        const _blk = new UnminedBlock(1, Date.now(), 145, [_tx])
         await _blk.setId()
         updateUnminedBlocks([...unminedBlocks, _blk])
+        setRecipient("")
+        setMemo("")
+        setAmount(0)
         props.onClose()
     }
 

@@ -18,6 +18,9 @@ export const ChainProvider = (props) => {
     const [unminedBlocks, updateUnminedBlocks, unminedBlocksLoaded] = useIndexedDB("unmined", "homecoin", [])
     const [receivedChains, setReceivedChains] = useState([])
 
+    const [receivedUnminedBlock, setReceivedUnminedBlock] = useState(null)
+    const [receivedMinedBlock, setReceivedMinedBlock] = useState(null)
+
     const { publicHex } = useContext(KeyContext)
 
     const mineBlock = async (block) => {
@@ -25,7 +28,7 @@ export const ChainProvider = (props) => {
         const mineResult = await block.mine()
         updateUnminedBlocks((unminedBlocks) => {
             return(unminedBlocks.filter((b) => {
-                return(b.id !== block.id)
+                return(b.header.id !== block.header.id)
             }))
         })
         updateChain((chain) => {
@@ -85,7 +88,7 @@ export const ChainProvider = (props) => {
     }, [unminedBlocks])
 
     return(
-        <ChainContext.Provider value={{homecoinBalance: homecoinBalance, pendingTransactions: pendingTransactions, chain: chain, updateChain: updateChain, unminedBlocks: unminedBlocks, updateUnminedBlocks: updateUnminedBlocks, receivedChains, setReceivedChains, mineBlock, lastBlockHash, setLastBlockHash}}>
+        <ChainContext.Provider value={{homecoinBalance, pendingTransactions, chain, updateChain, unminedBlocks, updateUnminedBlocks, receivedChains, setReceivedChains, mineBlock, lastBlockHash, setLastBlockHash, receivedMinedBlock, setReceivedMinedBlock, receivedUnminedBlock, setReceivedUnminedBlock}}>
             {props.children}
         </ChainContext.Provider>
     )

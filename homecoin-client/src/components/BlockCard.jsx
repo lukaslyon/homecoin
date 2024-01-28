@@ -15,16 +15,20 @@ import { formatDateTime } from "../utilities/time";
 import "../../styles/Block.css"
 import { PeerContext } from "../contexts/PeerProvider";
 
-export const Block = (props) => {
+import { Block } from "../chain/blockchain";
 
-    const { mineBlock } = useContext(ChainContext)
+export const BlockCard = (props) => {
+
+    const { mineBlock, lastBlockHash } = useContext(ChainContext)
     const { socializeBlock, lookupKnownPeer } = useContext(PeerContext)
     const [mining, setMining] = useState(false)
     const mineToast = useToast()
 
     const onClickMine = async () => {
         setMining(true)
-        mineBlock(props.block).then((res) => {
+        const hash = lastBlockHash
+        const readyBlock = new Block(props.block, hash)
+        mineBlock(readyBlock).then((res) => {
             if (res === "success"){
                 mineToast({
                     title: 'Block mined',
@@ -33,7 +37,7 @@ export const Block = (props) => {
                     duration: 9000,
                     isClosable: true,
                 })
-                socializeBlock(props.block)
+                socializeBlock(readyBlock)
                 setMining(false)
             }
         })
@@ -43,7 +47,7 @@ export const Block = (props) => {
         <Card className = "block-card">
             <CardHeader className="block-card-header">
                 <Heading size="xs">
-                    Created at: { formatDateTime(props.block.header.timestamp) }
+                    Created at: { formatDateTime(props.block.header.creationTimestamp) }
                 </Heading>
             </CardHeader>
             <CardBody className="block-card-contents">
@@ -64,7 +68,7 @@ export const Block = (props) => {
                 </Accordion>
             </CardBody>
             <CardFooter className="block-card-footer">
-                {(props.block.metadata.mineTime===null) ? (!mining) ? <Button onClick = {onClickMine}>Mine</Button> : <Spinner /> : <Badge colorScheme="green">Mined</Badge>}
+                {(props.unmined) ? (!mining) ? <Button onClick = {onClickMine}>Mine</Button> : <Spinner /> : <Badge colorScheme="green">Mined</Badge>}
             </CardFooter>
         </Card>
     )

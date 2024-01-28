@@ -16,9 +16,9 @@ export class Transaction{
     }
 
     async sign(key) {
-        sign(key, this.contents).then((signature) => {
-            this.signature = signature
-        })
+        const signature = await sign(key, this.contents)
+        this.signature = signature;
+        
     }
 
     manualSign(signature) {
@@ -46,14 +46,15 @@ export class Transaction{
 }
 
 export const serializeTransaction = (tx) => {
-    return {
+    return({
         "timestamp": tx.contents.timestamp,
         "from": tx.contents.from,
         "to": tx.contents.to,
         "amount": tx.contents.amount,
         "label": tx.contents.label,
         "signature": tx.signature
-    }
+    })
+    
 }
 
 export const reconstructTransaction = (tx) => {
@@ -63,34 +64,25 @@ export const reconstructTransaction = (tx) => {
 }
 
 export class Block{
-    constructor(version, prevHash, timestamp, bits, tx){
+    constructor(unmined, prevHash){
         this.header = {
-            "version": version,
+            "version": unmined.header.version,
             "prevHash": prevHash,
-            "timestamp": timestamp,
-            "bits": bits,
+            "creationTimestamp": unmined.header.creationTimestamp,
+            "bits": unmined.header.bits,
             "nonce": 0,
+            "id": unmined.header.id
         }
         this.metadata = {
             "mineTime": null
         }
-        this.tx = tx
+        this.tx = unmined.tx
     }
 
     setMerkleRoot = async () => {
         digest(this.tx).then((hash) => {
             this.header.merkleRoot = hash
         })
-    }
-
-    setId = async () => {
-        digest(this.tx).then((hash) => {
-            this.header.id = hash
-        })
-    }
-
-    setIdManual = (_id) => {
-        this.header.id = _id
     }
 
     setMerkleRootManual = (_merkleRoot) => {
@@ -181,7 +173,7 @@ export const serializeBlock = (block) => {
         "header": {
             "version": block.header.version,
             "prevHash": block.header.prevHash,
-            "timestamp": block.header.timestamp,
+            "creationTimestamp": block.header.creationTimestamp,
             "bits": block.header.bits,
             "nonce": block.header.nonce,
             "merkleRoot": block.header.merkleRoot,
@@ -199,13 +191,63 @@ export const reconstructBlock = (blk) => {
     blk.tx.forEach((t) => {
         _tx.push(reconstructTransaction(t))
     })
-    const _blk = new Block(blk.header.version, blk.header.prevHash, blk.header.timestamp, blk.header.bits, _tx)
+    const pnd = new UnminedBlock(blk.header.version, blk.header.creationTimestamp, blk.header.bits, _tx)
+    pnd.setIdManual(blk.header.id)
+    const _blk = new Block(pnd, blk.header.prevHash)
     _blk.setNonceManual(blk.header.nonce)
     _blk.setMerkleRootManual(blk.header.merkleRoot)
     _blk.setMineTimeManual(blk.metadata.mineTime)
+    
+    return(_blk)
+}
+
+export class UnminedBlock{
+    constructor(version, creationTimestamp, bits, tx){
+        this.header = {
+            "version": version,
+            "creationTimestamp": creationTimestamp,
+            "bits": bits,
+        }
+        this.tx = tx
+    }
+
+    setId = async () => {
+        const hash = await digest(this.tx)
+        this.header.id = hash
+    }
+
+    setIdManual = (_id) => {
+        this.header.id = _id
+    }
+}
+
+export const serializeUnminedBlock = (block) => {
+    const _tx = []
+    block.tx.forEach((t) => {
+        _tx.push(serializeTransaction(t))
+    })
+    return {
+        "header": {
+            "version": block.header.version,
+            "creationTimestamp": block.header.creationTimestamp,
+            "bits": block.header.bits,
+            "id": block.header.id
+        },
+        "tx": _tx
+    }
+}
+
+export const reconstructUnminedBlock = (blk) => {
+    const _tx = []
+    blk.tx.forEach((t) => {
+        _tx.push(reconstructTransaction(t))
+    })
+    const _blk = new UnminedBlock(blk.header.version, blk.header.creationTimestamp, 145, _tx)
     _blk.setIdManual(blk.header.id)
     return(_blk)
 }
+
+
 
 export class Chain{
     constructor(_chain=[]){
@@ -219,9 +261,10 @@ export class Chain{
 
         const tx = new Transaction(0, genesisNode, genesisNode, zero64Hex, "welcome home")
         tx.manualSign(genesisSignature)
-        const blk = new Block(1, zero256Hex,0,145,[tx])
+        const pnd = new UnminedBlock(1, zero256Hex, 145, [tx])
+        await pnd.setId()
+        const blk = new Block(pnd, 0)
         await blk.setMerkleRoot()
-        await blk.setId()
         await blk.mine()
         //console.log(blk)
 
@@ -253,7 +296,7 @@ export const reconstructChain = (chain) => {
 export const reconstructUnminedBlocks = (blocks) => {
     const _blocks = []
     blocks.forEach((b) => {
-        const _blk = reconstructBlock(b)
+        const _blk = reconstructUnminedBlock(b)
         _blocks.push(_blk)
     })
     return _blocks
@@ -262,7 +305,7 @@ export const reconstructUnminedBlocks = (blocks) => {
 export const serializeUnminedBlocks = (blocks) => {
     const _chain = []
     blocks.forEach((b) => {
-        const _blk = serializeBlock(b)
+        const _blk = serializeUnminedBlock(b)
         _chain.push(_blk)
     })
     return _chain

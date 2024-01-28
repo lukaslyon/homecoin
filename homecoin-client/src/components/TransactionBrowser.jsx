@@ -1,6 +1,6 @@
 import { useContext } from "react"
 import { ChainContext } from "../contexts/ChainProvider"
-import { Block } from "./Block"
+import { BlockCard } from "./BlockCard"
 import "../../styles/Block.css"
 
 export const TransactionBrowser = (props) => {
@@ -11,7 +11,7 @@ export const TransactionBrowser = (props) => {
                 {
                     unminedBlocks.toReversed().map((block) => {
                         return(
-                            <Block key={block.header.merkleRoot} block={block}/>
+                            <BlockCard key={block.header.id} block={block} unmined={true}/>
                         )
                     })
                 }
