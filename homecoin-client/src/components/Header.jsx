@@ -3,10 +3,13 @@ import { HomecoinBalance } from "./HomecoinBalance"
 import "../../styles/Header.css"
 import { PendingTransactions } from "./PendingTransactions"
 import { NewTransactionCard } from "./NewTransactionCard"
-import { Button } from "@chakra-ui/react"
+import { Button, useDisclosure } from "@chakra-ui/react"
 import { SettingsIcon } from "@chakra-ui/icons"
+import { SettingsModal } from "./SettingsModal"
 
 export const Header = (props) => {
+
+    const {isOpen, onOpen, onClose} = useDisclosure()
 
     return(
         <div className="page-header">
@@ -19,10 +22,11 @@ export const Header = (props) => {
                 </div>
             </div>
             <div className="settings-box">
-                <Button size="lg" variant="outline" colorScheme="blue" leftIcon={<SettingsIcon />}>
+                <Button size="lg" variant="outline" colorScheme="blue" leftIcon={<SettingsIcon />} onClick={onOpen}>
                     Settings
                 </Button>
             </div>
+            <SettingsModal isOpen={isOpen} onOpen={onOpen} onClose={onClose} />
         </div>
     )
 }

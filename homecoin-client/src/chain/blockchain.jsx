@@ -3,6 +3,8 @@ import { digest, hexToPublicKey, sign, verifySignature } from "../crypto/subtle"
 const zero256Hex = 0x0000000000000000000000000000000000000000000000000000000000000000;
 const zero64Hex = 0x0000000000000000;
 export const genesisNode = "30820122300d06092a864886f70d01010105000382010f003082010a0282010100b1e383fb1960fdb8ccfe4654220d3f1c5f41d2977bf7475502d4ebc589b3543dfd8584da34a13a39299678f95df218e9262c101f12f07b780c321fa6e25be215ec25d9578c1261ad61249c6a5c8937fe01bd04c48cf906a5fe47ae244729f46b835fc2f48dbbc98bb169d8b617c58081305477abfe86e2a9e7e000593d56ce44709bba4e03ba5089f3fd3eccab94e511fece910b3604e869c952c96701834e89c59d4bb29177ecea503991dcda187b0f3d75dcf9e994443bd1c101ba68d8e4d678f18f6bf5dbe677f00bf174813bbd268bc39e457c7c28faed177e561425fe2b5e832703c09f3c10fbce678c3398a2385b1a7c45f5ac6ff354bb437fe833f9930203010001";
+export const version = 1;
+export const bits = 145;
 
 export class Transaction{
     constructor(timestamp, from, to, amount, label){
@@ -242,7 +244,7 @@ export const reconstructUnminedBlock = (blk) => {
     blk.tx.forEach((t) => {
         _tx.push(reconstructTransaction(t))
     })
-    const _blk = new UnminedBlock(blk.header.version, blk.header.creationTimestamp, 145, _tx)
+    const _blk = new UnminedBlock(blk.header.version, blk.header.creationTimestamp, bits, _tx)
     _blk.setIdManual(blk.header.id)
     return(_blk)
 }
@@ -261,7 +263,7 @@ export class Chain{
 
         const tx = new Transaction(0, genesisNode, genesisNode, zero64Hex, "welcome home")
         tx.manualSign(genesisSignature)
-        const pnd = new UnminedBlock(1, zero256Hex, 145, [tx])
+        const pnd = new UnminedBlock(version, zero256Hex, bits, [tx])
         await pnd.setId()
         const blk = new Block(pnd, 0)
         await blk.setMerkleRoot()

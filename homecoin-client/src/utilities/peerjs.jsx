@@ -17,7 +17,9 @@ import axios from 'axios'
 export const checkSignalServer = (url) => {
     const signalServerResult = new Promise((resolve, reject) => {
         axios.get(url).then((res) => {
-            if (JSON.stringify(res.data) === JSON.stringify({"name":"PeerJS Server","description":"A server side element to broker connections between PeerJS clients.","website":"https://peerjs.com/"})) resolve(true)
+            if (JSON.stringify(res.data) === JSON.stringify({"name":"PeerJS Server","description":"A server side element to broker connections between PeerJS clients.","website":"https://peerjs.com/"})){
+            resolve(true)
+            } 
             else reject(false)
         }).catch((err) => {
             reject(false)
@@ -35,7 +37,8 @@ export const requestTypes = {
     "RESPONSE_ALL_BLOCKS": "RESPONSE_ALL_BLOCKS",
     "REQUEST_FULL_CHAIN": "REQUEST_FULL_CHAIN",
     "RESPONSE_FULL_CHAIN": "RESPONSE_FULL_CHAIN",
-    "SEND_MINED_BLOCK": "SEND_MINED_BLOCK"
+    "SEND_MINED_BLOCK": "SEND_MINED_BLOCK",
+    "UPDATE_IDENTITY": "UPDATE_IDENTITY"
 }
 
 export const mostFrequentHashOwner = (obj) => {

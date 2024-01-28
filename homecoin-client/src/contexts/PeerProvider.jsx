@@ -36,6 +36,7 @@ export const PeerProvider = (props) => {
     // States for managing data with IndexedDB
     const [signalServer, setSignalServer] = useIndexedDB("signalServer", "homecoin", "");
     const [historicalPeers, setHistoricalPeers] = useIndexedDB("historicalPeers", "homecoin", []);
+    const [nickname, setNickname] = useIndexedDB("nickname", "homecoin", "")
 
     // States for blockchain-related data and operations
     const { keyPair, publicHex } = useContext(KeyContext);
@@ -93,10 +94,10 @@ export const PeerProvider = (props) => {
 
             case requestTypes.RESPONSE_ALL_BLOCKS:
                 setSuppressSendUnminedBlocks(true)
-                data.data.blocks.forEach((b) => {
+                data.data.blocks.forEach((_received) => {
                     updateUnminedBlocks(currentBlocks => {
-                        if (!currentBlocks.some(b => b.header.id === data.data.block.header.id)) {
-                            return [...currentBlocks, reconstructUnminedBlock(data.data.block)];
+                        if (!currentBlocks.some(b => b.header.id === _received.header.id)) {
+                            return [...currentBlocks, reconstructUnminedBlock(_received)];
                         } else {
                             return currentBlocks;
                         }
@@ -121,6 +122,23 @@ export const PeerProvider = (props) => {
 
             case requestTypes.SEND_MINED_BLOCK:
                 setReceivedMinedBlock(reconstructBlock(data.data.block))
+
+                break;
+
+            case requestTypes.UPDATE_IDENTITY:
+                if (!historicalPeers.some(p => p.id === data.data.id)) {
+                    setHistoricalPeers([...historicalPeers, {
+                        "label": data.data.label,
+                        "id": data.data.id,
+                        "publicKey": data.data.publicKey
+                    }])
+                } else{
+                    setHistoricalPeers([...historicalPeers.filter((p) => p.id !== data.data.id), {
+                        "label": data.data.label,
+                        "id": data.data.id,
+                        "publicKey": data.data.publicKey
+                    }])
+                }
         }
     }
 
@@ -135,6 +153,12 @@ export const PeerProvider = (props) => {
             "type": requestTypes.REQUEST_FULL_CHAIN
         })
     }
+    
+    const requestUnminedFromPeer = (connection) => {
+        connection.send({
+            "type": requestTypes.REQUEST_ALL_BLOCKS
+        })
+    }
 
     const sendGreeting = (connection) => {
 
@@ -142,7 +166,20 @@ export const PeerProvider = (props) => {
             connection.send({
                 "type": requestTypes.IDENTIFIER,
                 "data": {
-                    "label": peer.id, // todo: allow user to select nickname
+                    "label": (nickname === "") ? peer.id: nickname,
+                    "id": peer.id,
+                    "publicKey": hex
+                }
+            })
+        })
+    }
+
+    const updateGreeting = (connection) => {
+        publicKeyToHex(keyPair.publicKey).then((hex) => {
+            connection.send({
+                "type": requestTypes.UPDATE_IDENTITY,
+                "data": {
+                    "label": (nickname === "") ? peer.id: nickname,
                     "id": peer.id,
                     "publicKey": hex
                 }
@@ -356,19 +393,31 @@ export const PeerProvider = (props) => {
         })
     }, [receivedMinedBlock])
 
+    useEffect(() => {
+        if (nickname !== ""){
+            connections.forEach((c) => {
+                updateGreeting(c)
+            })
+        }
+    }, [nickname])
+
     return (
         <PeerContext.Provider value={{peer: peer, 
-                                    id: id, 
-                                    connected: connected,
-                                    connections: connections, 
-                                    peerIds: peerIds, 
-                                    nodes: nodes, 
-                                    signalServer: signalServer, 
-                                    setSignalServer: setSignalServer,
-                                    peerChainHashes: setPeerChainHashes,
-                                    historicalPeers: historicalPeers,
+                                    id, 
+                                    connected,
+                                    connections, 
+                                    peerIds, 
+                                    nodes, 
+                                    signalServer, 
+                                    setSignalServer,
+                                    setPeerChainHashes,
+                                    historicalPeers,
                                     socializeBlock,
-                                    lookupKnownPeer
+                                    lookupKnownPeer,
+                                    requestChainFromPeer,
+                                    requestUnminedFromPeer,
+                                    nickname,
+                                    setNickname
                                     }}>
             {props.children}
         </PeerContext.Provider>

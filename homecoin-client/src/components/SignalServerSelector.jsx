@@ -1,4 +1,4 @@
-import { Input } from "@chakra-ui/react";
+import { FormControl, FormLabel, Input } from "@chakra-ui/react";
 import { Button } from "@chakra-ui/react";
 import {
     Modal,
@@ -10,7 +10,7 @@ import {
     ModalCloseButton,
   } from '@chakra-ui/react'
 import { useToast } from '@chakra-ui/react'
-import { useContext, useState } from "react";
+import { useContext, useState, useEffect } from "react";
 import { PeerContext } from "../contexts/PeerProvider";
 import { checkSignalServer } from "../utilities/peerjs";
 
@@ -20,9 +20,9 @@ import { KeyContext } from "../contexts/KeyProvider";
 
 export const SignalServerSelector = (props) => {
 
-    const { signalServer, setSignalServer} = useContext(PeerContext)
-    const [userSelectedServer, setUserSelectedServer] = useState("http://ec2-16-170-232-139.eu-north-1.compute.amazonaws.com:9000/signal/")
-    const [signalServerError, setSignalServerError] = useState(false)
+    const { signalServer, setSignalServer, nickname, setNickname} = useContext(PeerContext)
+    const [userSelectedServer, setUserSelectedServer] = useState(signalServer)
+    const [selectedNickname, setSelectedNickname] = useState(nickname)
     const { isOpen, onOpen, onClose } = useDisclosure()
     const serverToast = useToast()
 
@@ -36,8 +36,17 @@ export const SignalServerSelector = (props) => {
     const handleSubmit = (event) => {
         checkSignalServer(userSelectedServer).then((res) => {
             setSignalServer(userSelectedServer)
+            setNickname(selectedNickname)
+            serverToast(
+                {
+                    title: 'Success',
+                    description: "Successfully logged in",
+                    status: 'success',
+                    duration: 9000,
+                    isClosable: true,
+                }
+            )
         }).catch((err) => {
-            setSignalServerError(true)
             serverToast(
                 {
                     title: 'Invalid Signal Server',
@@ -50,16 +59,38 @@ export const SignalServerSelector = (props) => {
         })
     }
 
+    useEffect(() => {
+        if (signalServer !== ""){
+            setUserSelectedServer(signalServer)
+        }
+    }, [signalServer])
+
+    useEffect(() => {
+        if (nickname !== ""){
+            setSelectedNickname(nickname)
+        }
+    }, [nickname])
+
     return(
         <>
         <Modal isOpen = {true} onClose = {onClose}>
             <ModalOverlay>
                 <ModalContent>
-                    <ModalHeader>Select Signal Server</ModalHeader>
+                    <ModalHeader>Configure Homecoin</ModalHeader>
                     <ModalCloseButton />
                     <ModalBody>
-                        Provide the fully-qualified location of the homecoin signal server you wish to use. The signal server is used to broker peer-to-peer connections.
-                        <Input value={userSelectedServer} onChange={handleChangeUserSelectedServer}/>
+                        <FormControl>
+                            <FormLabel>
+                                Signal Server Address
+                            </FormLabel>
+                            <Input value={userSelectedServer} onChange={handleChangeUserSelectedServer}/>
+                        </FormControl>
+                        <FormControl>
+                            <FormLabel>
+                                Nickname
+                            </FormLabel>
+                            <Input value={selectedNickname} onChange={(e) => setSelectedNickname(e.target.value)} />
+                        </FormControl>
                         <Button onClick={handleSubmit}>Submit</Button>
                     </ModalBody>
                 </ModalContent>

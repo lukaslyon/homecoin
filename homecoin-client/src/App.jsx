@@ -7,7 +7,7 @@ import { ChainProvider } from "./contexts/ChainProvider"
 
 function App() {
 
-  const { connected } = useContext(PeerContext)
+  const { connected, nickname } = useContext(PeerContext)
 
   useLayoutEffect(() => {
     document.body.style.backgroundColor = "var(--gray-200, #CBD5E0)";
@@ -15,7 +15,7 @@ function App() {
 
   return (
     <>
-      {connected ? <Dashboard /> : <Login />}
+      {(connected&&(nickname!=="")) ? <Dashboard /> : <Login />}
     </>
   )
 }
