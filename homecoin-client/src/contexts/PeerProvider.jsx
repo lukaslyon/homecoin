@@ -289,7 +289,18 @@ export const PeerProvider = (props) => {
                 path: _url.pathname,
                 port: _url.port,
                 host: _url.hostname,
-                key: "homecoin"
+                key: "homecoin",
+                config: {
+                    iceServers: [
+                        {url:"stun:stun.l.google.com:19302"},
+                        {url:"stun:stun1.l.google.com:19302"},
+                        {url:"stun:stun2.l.google.com:19302"},
+                        {url:"stun:stun3.l.google.com:19302"},
+                        {url:"stun:stun4.l.google.com:19302"},
+                        {url:"turn:turn01.hubl.in?transport=udp"},
+                        {url:"turn:turn02.hubl.in?transport=tcp"}
+                    ]
+                }
             }))
         }
     },[signalServer, uuid])
