@@ -292,13 +292,8 @@ export const PeerProvider = (props) => {
                 key: "homecoin",
                 config: {
                     iceServers: [
-                        {url:"stun:stun.l.google.com:19302"},
-                        {url:"stun:stun1.l.google.com:19302"},
-                        {url:"stun:stun2.l.google.com:19302"},
-                        {url:"stun:stun3.l.google.com:19302"},
-                        {url:"stun:stun4.l.google.com:19302"},
-                        {url:"turn:turn01.hubl.in?transport=udp"},
-                        {url:"turn:turn02.hubl.in?transport=tcp"}
+                        {url:"stun:13.51.165.213:3478"},
+                        {url:"turn:13.51.165.213:3478", username: "admin", credential: "Genome123!"},
                     ]
                 }
             }))
