@@ -35,7 +35,7 @@ import { ChainContext } from '../contexts/ChainProvider'
     const [amount, setAmount] = useState(0)
 
     const {keyPair, publicHex} = useContext(KeyContext)
-    const { chain, unminedBlocks, updateUnminedBlocks } = useContext(ChainContext)
+    const { chain, unminedBlocks, updateUnminedBlocks, setSendUnminedBlock } = useContext(ChainContext)
 
     const handleChangeRecipient = (e) => {
         setRecipient(e.target.value)
@@ -55,6 +55,7 @@ import { ChainContext } from '../contexts/ChainProvider'
         const _blk = new UnminedBlock(version, Date.now(), bits, [_tx])
         await _blk.setId()
         updateUnminedBlocks([...unminedBlocks, _blk])
+        setSendUnminedBlock(_blk)
         setRecipient("")
         setMemo("")
         setAmount(0)
@@ -75,7 +76,7 @@ import { ChainContext } from '../contexts/ChainProvider'
                 <Select placeholder="Select recipient" value={recipient} onChange={handleChangeRecipient}>
                     {historicalPeers.map((p) => {
                         return(
-                            <option value = {p.publicKey} key={p.label}>
+                            <option value = {p.publicKey} key={p.publicKey}>
                                 {p.label}
                             </option>
                         )

@@ -12,7 +12,7 @@ import { digest, publicKeyToHex } from "../crypto/subtle";
 import { Chain, reconstructBlock, reconstructChain, serializeBlock, serializeUnminedBlock, reconstructUnminedBlock, serializeChain, serializeUnminedBlocks } from "../chain/blockchain";
 
 // PeerJS utilities
-import { requestTypes } from "../utilities/peerjs";
+import { requestTypes, HeartbeatManager } from "../utilities/peerjs";
 
 // Custom hooks
 import useIndexedDB from "../hooks/useIndexedDB";
@@ -32,6 +32,7 @@ export const PeerProvider = (props) => {
     const [peerIds, setPeerIds] = useState([]);
     const [nodes, setNodes] = useState([]);
     const [peerChainHashes, setPeerChainHashes] = useState({});
+    const [heartbeats, setHeartbeats] = useState([])
 
     // States for managing data with IndexedDB
     const [signalServer, setSignalServer] = useIndexedDB("signalServer", "homecoin", "");
@@ -39,7 +40,7 @@ export const PeerProvider = (props) => {
     const [nickname, setNickname] = useIndexedDB("nickname", "homecoin", "")
 
     // States for blockchain-related data and operations
-    const { keyPair, publicHex } = useContext(KeyContext);
+    const { keyPair, publicHex, uuid } = useContext(KeyContext);
     const { 
         chain, 
         updateChain, 
@@ -50,7 +51,11 @@ export const PeerProvider = (props) => {
         receivedUnminedBlock,
         setReceivedUnminedBlock,
         receivedMinedBlock,
-        setReceivedMinedBlock
+        setReceivedMinedBlock,
+        sendMinedBlock,
+        setSendMinedBlock,
+        sendUnminedBlock,
+        setSendUnminedBlock
     } = useContext(ChainContext);
 
     // Other state variables
@@ -233,7 +238,7 @@ export const PeerProvider = (props) => {
                                             return(b.header.id !== block.header.id)
                                         }))
                                     })
-                                    socializeBlock(block)
+                                    setSendMinedBlock(block)
                                     return(new Chain([..._chain.chain, block]))
                                 }
                                 else{
@@ -254,29 +259,31 @@ export const PeerProvider = (props) => {
         })
     }
 
-    const socializeBlock= (block) => {
-        connections.forEach((conn) => {
-            conn.send({
-                "type": requestTypes.SEND_MINED_BLOCK,
-                "data": {
-                    "block": serializeBlock(block)
-                }
-            })
-        })
-    }
-
     const lookupKnownPeer = (publicKey) => {
         if (publicKey === publicHex) return "you"
         let match = historicalPeers.find(p => p.publicKey === publicKey)
         if (match !== undefined) return match.label
         return publicKey
     }
+
+    useEffect(() => {
+        const handleBeforeUnload = (e) => {
+            peer.disconnect()
+        };
+      
+        window.addEventListener('beforeunload', handleBeforeUnload);
+      
+        // Remove the event listener on cleanup.
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, [])
     
     useEffect(() => {
         // on render and on update to signalServer, create new peer object
         // todo: don't hardcode this
-        if (signalServer !== ""){
-            const _id = `${publicHex.substring(0, 8)}-${publicHex.substring(12, 16)}-${publicHex.substring(56, 60)}-${publicHex.substring(60, 64)}-${publicHex.substring(64, 76)}`;
+        if ((signalServer !== "")&&(uuid !== "")){
+            const _id = uuid
             const _url = new URL(signalServer)
             setPeer((p) => new Peer(_id,{
                 path: _url.pathname,
@@ -285,7 +292,7 @@ export const PeerProvider = (props) => {
                 key: "homecoin"
             }))
         }
-    },[signalServer, publicHex])
+    },[signalServer, uuid])
 
     useEffect(() => {
         if (peer !== null) {
@@ -302,18 +309,50 @@ export const PeerProvider = (props) => {
                     setNodes(res.data)
                 })
             })
+            peer.on("disconnect", () => {
+                setConnections((conn) => {
+                    conn.close()
+                })
+            })
             peer.on("connection", (connection) => {
                 connection.on("open", () => {
                     // on successful remote connection from peer, update local connections
-                    setConnections((conn) => [...conn, connection])
-                    setPeerIds((pids) => [...pids, connection.peer])
+                    setConnections((conn) => {
+                        if (conn.some((c) => (c.peer !== connection.peer))){
+                            return [...conn, connection]
+                        }
+                        else{
+                            const _connections = conn.filter(c => c.peer !== connection.peer)
+                            return [..._connections, connection]
+                        }
+                    })
+                    setPeerIds((pids) => {
+                        if (pids.some((p) => p !== connection.peer)){
+                            return [...pids, connection.peer]
+                        }
+                        else{
+                            const _peers = pids.filter(p => p !== connection.peer)
+                            return [..._peers, connection.peer]
+                        }
+                        
+                    })
+                    setHeartbeats((hb) => [...hb, {[connection.peer]: new HeartbeatManager(peer, connection)}])
                     //requestBlockchainHash(connection)
                     sendGreeting(connection)
                     requestChainFromPeer(connection)
                 })
                 connection.on("close", () => {
                     // update local connections on disconnect
-                    setConnections((_connections) => _connections.filter(c => c !== connection))
+                    console.log("Closing connection")
+                    setConnections((_connections) => _connections.filter(c => c.peer !== connection.peer))
+                    setPeerIds(peerIds.filter(pid => pid !== connection.peer))
+                    setHeartbeats((hb) => [...hb, {hb: new HeartbeatManager(peer, connection), peer: connection.peer}])
+
+                })
+                connection.on("error", () => {
+                    // update local connections on disconnect
+                    console.log("Connection error")
+                    setConnections((_connections) => _connections.filter(c => c.peer !== connection.peer))
                     setPeerIds(peerIds.filter(pid => pid !== connection.peer))
 
                 })
@@ -333,20 +372,40 @@ export const PeerProvider = (props) => {
                     })
                     
                     // add connection to list before verifying
-                    setConnections((conn) => [...conn, connection])
-                    setPeerIds((pids) => [...pids, connection.peer])
-                    connection.on("close", (conn) => {
-                        // update local connections on disconnect
+                    connection.on("close", () => {
+                        console.log("Closing connection")
                         setConnections((_connections) => _connections.filter(c => c !== connection))
                         setPeerIds(peerIds.filter(pid => pid !== connection.peer))
+                        setHeartbeats((hb) => hb.filter((h) => h.peer !== connection.peer))
                     })
                     connection.on("open", () => {
+                        setConnections((conn) => {
+                            if (conn.some((c) => (c.peer !== connection.peer))){
+                                return [...conn, connection]
+                            }
+                            else{
+                                const _connections = conn.filter(c => c.peer !== connection.peer)
+                                return [..._connections, connection]
+                            }
+                        })
+                        setPeerIds((pids) => {
+                            if (pids.some((p) => p !== connection.peer)){
+                                return [...pids, connection.peer]
+                            }
+                            else{
+                                const _peers = pids.filter(p => p !== connection.peer)
+                                return [..._peers, connection.peer]
+                            }
+                            
+                        })
+                        setHeartbeats((hb) => [...hb, {hb: new HeartbeatManager(peer, connection), peer: connection.peer}])
                         sendGreeting(connection)
                         requestChainFromPeer(connection)
                     })
                     connection.on("error", (err) => {
                         // on connection error, remove connection from list
                         // is there a better way to handle outgoing connections?
+                        console.log("Connection error")
                         setConnections(conn.filter(c => c !== connection))
                         setPeerIds(peerIds.filter(pid => pid !== connection.peer))
                     })
@@ -358,13 +417,13 @@ export const PeerProvider = (props) => {
         }
     }, [nodes])
 
-    useEffect(() => {
-        if ((unminedBlocks.length !== 0)&&(!suppressSendUnminedBlocks)){
-            connections.forEach((conn) => {
-                sendNewBlock(conn, unminedBlocks[unminedBlocks.length - 1])
-            })
-        }
-    }, [unminedBlocks])
+    // useEffect(() => {
+    //     if ((unminedBlocks.length !== 0)&&(!suppressSendUnminedBlocks)){
+    //         connections.forEach((conn) => {
+    //             sendNewBlock(conn, unminedBlocks[unminedBlocks.length - 1])
+    //         })
+    //     }
+    // }, [unminedBlocks])
 
     useEffect(() => {
         if (receivedUnminedBlock !== null){
@@ -394,6 +453,33 @@ export const PeerProvider = (props) => {
     }, [receivedMinedBlock])
 
     useEffect(() => {
+        if (sendMinedBlock !== null){
+            connections.forEach((conn) => {
+                conn.send({
+                    "type": requestTypes.SEND_MINED_BLOCK,
+                    "data": {
+                        "block": serializeBlock(sendMinedBlock)
+                    }
+                })
+            })
+        }
+        return(() => {
+            setSendMinedBlock(null)
+        })
+    }, [connections, sendMinedBlock])
+
+    useEffect(() => {
+        if (sendUnminedBlock !== null){
+            connections.forEach((conn) => {
+                sendNewBlock(conn, sendUnminedBlock)
+            })
+        }
+        return(() => {
+            setSendUnminedBlock(null)
+        })
+    }, [sendUnminedBlock, connections])
+
+    useEffect(() => {
         if (nickname !== ""){
             connections.forEach((c) => {
                 updateGreeting(c)
@@ -412,7 +498,6 @@ export const PeerProvider = (props) => {
                                     setSignalServer,
                                     setPeerChainHashes,
                                     historicalPeers,
-                                    socializeBlock,
                                     lookupKnownPeer,
                                     requestChainFromPeer,
                                     requestUnminedFromPeer,

@@ -20,7 +20,7 @@ import { Block } from "../chain/blockchain";
 export const BlockCard = (props) => {
 
     const { mineBlock, lastBlockHash } = useContext(ChainContext)
-    const { socializeBlock, lookupKnownPeer } = useContext(PeerContext)
+    const { setSendMinedBlock } = useContext(PeerContext)
     const [mining, setMining] = useState(false)
     const mineToast = useToast()
 
@@ -32,12 +32,11 @@ export const BlockCard = (props) => {
             if (res === "success"){
                 mineToast({
                     title: 'Block mined',
-                    description: `The block ${props.block.header.merkleRoot} has been successfully mined.`,
+                    description: `The block ${props.block.header.id} has been successfully mined.`,
                     status: 'success',
                     duration: 9000,
                     isClosable: true,
                 })
-                socializeBlock(readyBlock)
                 setMining(false)
             }
         })

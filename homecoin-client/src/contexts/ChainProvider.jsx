@@ -21,6 +21,9 @@ export const ChainProvider = (props) => {
     const [receivedUnminedBlock, setReceivedUnminedBlock] = useState(null)
     const [receivedMinedBlock, setReceivedMinedBlock] = useState(null)
 
+    const [sendMinedBlock, setSendMinedBlock] = useState(null)
+    const [sendUnminedBlock, setSendUnminedBlock] = useState(null)
+
     const { publicHex } = useContext(KeyContext)
 
     const mineBlock = async (block) => {
@@ -34,6 +37,7 @@ export const ChainProvider = (props) => {
         updateChain((chain) => {
             return(new Chain([...chain.chain, block]))
         })
+        setSendMinedBlock(block)
         return mineResult;
     }
 
@@ -88,7 +92,7 @@ export const ChainProvider = (props) => {
     }, [unminedBlocks])
 
     return(
-        <ChainContext.Provider value={{homecoinBalance, pendingTransactions, chain, updateChain, unminedBlocks, updateUnminedBlocks, receivedChains, setReceivedChains, mineBlock, lastBlockHash, setLastBlockHash, receivedMinedBlock, setReceivedMinedBlock, receivedUnminedBlock, setReceivedUnminedBlock}}>
+        <ChainContext.Provider value={{homecoinBalance, pendingTransactions, chain, updateChain, unminedBlocks, updateUnminedBlocks, receivedChains, setReceivedChains, mineBlock, lastBlockHash, setLastBlockHash, receivedMinedBlock, setReceivedMinedBlock, receivedUnminedBlock, setReceivedUnminedBlock, sendMinedBlock, setSendMinedBlock, sendUnminedBlock, setSendUnminedBlock}}>
             {props.children}
         </ChainContext.Provider>
     )

@@ -19,7 +19,7 @@ import { checkSignalServer } from '../utilities/peerjs'
 
 export const SettingsModal = (props) => {
     
-    const { signalServer, setSignalServer, nickname, setNickname } = useContext(PeerContext)
+    const { id, signalServer, setSignalServer, nickname, setNickname } = useContext(PeerContext)
     const [newSignalServer, setNewSignalServer] = useState(signalServer)
     const [newNickname, setNewNickname] = useState(nickname)
     const serverToast = useToast()
@@ -69,6 +69,7 @@ export const SettingsModal = (props) => {
           <ModalHeader>Settings</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
+            UUID: {id}
             <FormControl>
                 <FormLabel>
                     Signal Server Address

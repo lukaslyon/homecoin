@@ -28,6 +28,43 @@ export const checkSignalServer = (url) => {
     return signalServerResult
 }
 
+export class HeartbeatManager {
+  constructor(peer, connection, interval = 5000) {
+      this.peer = peer;
+      this.connection = connection;
+      this.interval = interval;
+      this.lastHeartbeat = Date.now();
+      this.heartbeatInterval = null;
+      this.startHeartbeat();
+      this.listenForHeartbeat();
+  }
+
+  startHeartbeat() {
+      this.heartbeatInterval = setInterval(() => {
+          this.connection.send({ type: 'heartbeat', timestamp: Date.now() });
+          console.log("sent heartbeat")
+      }, this.interval);
+  }
+
+  listenForHeartbeat() {
+      this.connection.on('data', (data) => {
+          if (data.type === 'heartbeat') {
+              this.lastHeartbeat = Date.now();
+              console.log("received heartbeat")
+          }
+      });
+
+      // Check for disconnection
+      setInterval(() => {
+          if (Date.now() - this.lastHeartbeat > this.interval * 2) {
+              console.log('Peer disconnected');
+              this.connection.close()
+              clearInterval(this.heartbeatInterval);
+          }
+      }, this.interval);
+  }
+}
+
 export const requestTypes = {
     "IDENTIFIER": "IDENTIFIER",
     "REQUEST_BLOCKCHAIN_HASH": "REQUEST_BLOCKCHAIN_HASH",
