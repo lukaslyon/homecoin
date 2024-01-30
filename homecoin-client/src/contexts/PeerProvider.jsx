@@ -293,7 +293,7 @@ export const PeerProvider = (props) => {
                 config: {
                     iceServers: [
                         {url:"stun:13.51.165.213:3478"},
-                        {url:"turn:13.51.165.213:3478", username: "admin", credential: "Genome123!"},
+                        {url:"turn:13.51.165.213:3478?transport=tcp", username: "admin", credential: "Genome123!"},
                     ]
                 }
             }))
