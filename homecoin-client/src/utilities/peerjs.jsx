@@ -35,6 +35,7 @@ export class HeartbeatManager {
       this.interval = interval;
       this.lastHeartbeat = Date.now();
       this.heartbeatInterval = null;
+      this.disconnectionCheckInterval = null; // New variable to keep track of the disconnection check interval
       this.startHeartbeat();
       this.listenForHeartbeat();
   }
@@ -55,11 +56,12 @@ export class HeartbeatManager {
       });
 
       // Check for disconnection
-      setInterval(() => {
+      this.disconnectionCheckInterval = setInterval(() => {
           if (Date.now() - this.lastHeartbeat > this.interval * 2) {
               console.log('Peer disconnected');
               this.connection.close()
               clearInterval(this.heartbeatInterval);
+              clearInterval(this.disconnectionCheckInterval)
           }
       }, this.interval);
   }

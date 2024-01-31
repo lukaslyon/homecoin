@@ -55,7 +55,7 @@ export const PeerProvider = (props) => {
         sendMinedBlock,
         setSendMinedBlock,
         sendUnminedBlock,
-        setSendUnminedBlock
+        setSendUnminedBlock,
     } = useContext(ChainContext);
 
     // Other state variables
@@ -292,8 +292,8 @@ export const PeerProvider = (props) => {
                 key: "homecoin",
                 config: {
                     iceServers: [
-                        {url:process.env.ICE_STUN_SERVER},
-                        {url:process.env.ICE_TURN_SERVER, username: process.env.ICE_TURN_USER, credential: process.env.ICE_TURN_CREDENTIAL},
+                        {url:import.meta.env.VITE_ICE_STUN_SERVER},
+                        {url:import.meta.env.VITE_ICE_TURN_SERVER, username: import.meta.env.VITE_ICE_TURN_USER, credential: import.meta.env.VITE_ICE_TURN_CREDENTIAL},
                     ]
                 }
             }))
@@ -324,7 +324,7 @@ export const PeerProvider = (props) => {
                 connection.on("open", () => {
                     // on successful remote connection from peer, update local connections
                     setConnections((conn) => {
-                        if (conn.some((c) => (c.peer !== connection.peer))){
+                        if (conn.every((c) => (c.peer !== connection.peer))){
                             return [...conn, connection]
                         }
                         else{
@@ -333,7 +333,7 @@ export const PeerProvider = (props) => {
                         }
                     })
                     setPeerIds((pids) => {
-                        if (pids.some((p) => p !== connection.peer)){
+                        if (pids.every((p) => p !== connection.peer)){
                             return [...pids, connection.peer]
                         }
                         else{
@@ -342,7 +342,7 @@ export const PeerProvider = (props) => {
                         }
                         
                     })
-                    setHeartbeats((hb) => [...hb, {[connection.peer]: new HeartbeatManager(peer, connection)}])
+                    setHeartbeats((hb) => [...hb, {hb: new HeartbeatManager(peer, connection), peer: connection.peer}])
                     //requestBlockchainHash(connection)
                     sendGreeting(connection)
                     requestChainFromPeer(connection)
@@ -351,8 +351,8 @@ export const PeerProvider = (props) => {
                     // update local connections on disconnect
                     console.log("Closing connection")
                     setConnections((_connections) => _connections.filter(c => c.peer !== connection.peer))
-                    setPeerIds(peerIds.filter(pid => pid !== connection.peer))
-                    setHeartbeats((hb) => [...hb, {hb: new HeartbeatManager(peer, connection), peer: connection.peer}])
+                    setPeerIds((_peerIds) => _peerIds.filter(pid => pid !== connection.peer))
+                    setHeartbeats((hb) => hb.filter((b) => b.peer !== connection.peer))
 
                 })
                 connection.on("error", () => {
@@ -366,6 +366,9 @@ export const PeerProvider = (props) => {
                     dataHandler(data, connection)
                 })
             })
+        }
+        return () => {
+
         }
     },[peer, historicalPeers])
 
@@ -381,12 +384,12 @@ export const PeerProvider = (props) => {
                     connection.on("close", () => {
                         console.log("Closing connection")
                         setConnections((_connections) => _connections.filter(c => c !== connection))
-                        setPeerIds(peerIds.filter(pid => pid !== connection.peer))
+                        setPeerIds((_peerIds) => _peerIds.filter(pid => pid !== connection.peer))
                         setHeartbeats((hb) => hb.filter((h) => h.peer !== connection.peer))
                     })
                     connection.on("open", () => {
                         setConnections((conn) => {
-                            if (conn.some((c) => (c.peer !== connection.peer))){
+                            if (conn.every((c) => (c.peer !== connection.peer))){
                                 return [...conn, connection]
                             }
                             else{
@@ -395,7 +398,7 @@ export const PeerProvider = (props) => {
                             }
                         })
                         setPeerIds((pids) => {
-                            if (pids.some((p) => p !== connection.peer)){
+                            if (pids.every((p) => p !== connection.peer)){
                                 return [...pids, connection.peer]
                             }
                             else{
