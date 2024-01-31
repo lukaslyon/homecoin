@@ -292,8 +292,8 @@ export const PeerProvider = (props) => {
                 key: "homecoin",
                 config: {
                     iceServers: [
-                        {url:"stun:13.51.165.213:3478"},
-                        {url:"turn:13.51.165.213:3478?transport=tcp", username: "admin", credential: "Genome123!"},
+                        {url:process.env.ICE_STUN_SERVER},
+                        {url:process.env.ICE_TURN_SERVER, username: process.env.ICE_TURN_USER, credential: process.env.ICE_TURN_CREDENTIAL},
                     ]
                 }
             }))
