@@ -17,7 +17,7 @@ export const Transaction = (props) => {
                 To: {lookupKnownPeer(props.tx.contents.to)}
             </Text>
             <Text fontSize={15}noOfLines={1}>
-                Amount: {props.tx.contents.amount}
+                Amount: ḧ{props.tx.contents.amount}
             </Text>
         </div>
 

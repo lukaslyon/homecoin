@@ -10,7 +10,9 @@ import {
     FormLabel,
     Select,
     Button,
-    Input
+    Input,
+    InputLeftAddon,
+    InputGroup
   } from '@chakra-ui/react'
 
   import {
@@ -20,7 +22,7 @@ import {
     NumberIncrementStepper,
     NumberDecrementStepper,
   } from '@chakra-ui/react'
-import { useContext, useState } from 'react'
+import { useContext, useState, useEffect } from 'react'
 import { PeerContext } from '../contexts/PeerProvider'
 import { UnminedBlock, Transaction, bits, version } from '../chain/blockchain'
 import { KeyContext } from '../contexts/KeyProvider'
@@ -32,10 +34,11 @@ import { ChainContext } from '../contexts/ChainProvider'
     const {historicalPeers} = useContext(PeerContext)
     const [recipient, setRecipient] = useState("")
     const [memo, setMemo] = useState("")
-    const [amount, setAmount] = useState(0)
+    const [amount, setAmount] = useState(1)
+    const [valid, setValid] = useState(false)
 
     const {keyPair, publicHex} = useContext(KeyContext)
-    const { chain, unminedBlocks, updateUnminedBlocks, setSendUnminedBlock } = useContext(ChainContext)
+    const { chain, unminedBlocks, updateUnminedBlocks, setSendUnminedBlock, homecoinBalance } = useContext(ChainContext)
 
     const handleChangeRecipient = (e) => {
         setRecipient(e.target.value)
@@ -62,6 +65,14 @@ import { ChainContext } from '../contexts/ChainProvider'
         props.onClose()
     }
 
+    useEffect(() => {
+        if ((recipient==="")||(memo==="")||(homecoinBalance - amount) < 0){
+            setValid(false)
+        } else{
+            setValid(true)
+        }
+    }, [recipient, memo, homecoinBalance, amount])
+
     return(
         <Modal isOpen={props.isOpen} onClose={props.onClose}>
         <ModalOverlay />
@@ -73,7 +84,7 @@ import { ChainContext } from '../contexts/ChainProvider'
                 <FormLabel>
                     Recipient
                 </FormLabel>
-                <Select placeholder="Select recipient" value={recipient} onChange={handleChangeRecipient}>
+                <Select placeholder="Select recipient" value={recipient} onChange={handleChangeRecipient} isRequired={true}>
                     {historicalPeers.map((p) => {
                         return(
                             <option value = {p.publicKey} key={p.publicKey}>
@@ -87,24 +98,26 @@ import { ChainContext } from '../contexts/ChainProvider'
                 <FormLabel>
                     Memo
                 </FormLabel>
-                <Input placeholder="Enter a transaction memo" value={memo} onChange={handleChangeMemo}/>
+                <Input placeholder="Enter a transaction memo" value={memo} onChange={handleChangeMemo} isRequired={true}/>
             </FormControl>
             <FormControl>
                 <FormLabel>
                     Amount
                 </FormLabel>
-                    <NumberInput value={amount} onChange={handleChangeAmount}>
+                <InputGroup>
+                    <NumberInput value={amount} onChange={handleChangeAmount} min={1} format={(val) => "ḧ"+val} precision={0} isRequired={true}>
                         <NumberInputField />
                         <NumberInputStepper>
                             <NumberIncrementStepper />
                             <NumberDecrementStepper />
                         </NumberInputStepper>
                     </NumberInput>
+                </InputGroup>
             </FormControl>
           </ModalBody>
     
           <ModalFooter>
-            <Button colorScheme='blue' mr={3} onClick={handleSubmitTransaction}>
+            <Button colorScheme='blue' mr={3} onClick={handleSubmitTransaction} isDisabled={!valid}>
                 Submit
             </Button>
             <Button variant='ghost' onClick={props.onClose}>Close</Button>

@@ -32,7 +32,7 @@ export const KeyProvider = (props) => {
     }, [publicHex])
 
     return (
-        <KeyContext.Provider value={{keyPair, publicHex, uuid}}>
+        <KeyContext.Provider value={{keyPair, publicHex, uuid, keyPairLoaded}}>
             {props.children}
         </KeyContext.Provider>
     )

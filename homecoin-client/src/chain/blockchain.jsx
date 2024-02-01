@@ -104,7 +104,7 @@ export class Block{
     }
 
     addRewardTransaction(miner){
-        const _tx = new Transaction(Date.now(), genesisNode, miner, 1, "mining reward")
+        const _tx = new Transaction(Date.now(), genesisNode, miner, 1, "Mining Reward")
         this.tx.push(_tx)
     }
 
@@ -256,14 +256,14 @@ export class Chain{
         this.chain = _chain
     }
 
-    async assignGenesisBlock(){
+    async assignGenesisBlock(recipientKey){
 
         const genesisSignature = "a3ebf73637c53929f7bcaefd30b06dd00eaeed49507602f70ff828f03485743e8a811d83323f95c64c31f9b1aca3c61da1899223c2552533741b8be90a6b98c69f5b793f5c4c150436187ba0d4b5eaf6fc9e673123bdb9f8e601804311a7e84472237179448cb4bb72316d0d498dfad03b6c56a05ca11e0e547289b1e4e72182f15aeae0ef18bbb720ff324a9bf9904762546a6d4e85d6cb9dea7e7d63ac25025442af7a56b31e6d30aa35f5129189cfd6352828f418709d4bccb06aa8beb9e6ee42f2b9c686b5415c3aee59de968ec9bfcc61d823b3603fc64123ffd3e392f6b0df4bd908c82463c7c1d29a2d30f7aa4a0caebb4bea21a9c53d89459fe360f6"
         const genesisNode = "30820122300d06092a864886f70d01010105000382010f003082010a0282010100b1e383fb1960fdb8ccfe4654220d3f1c5f41d2977bf7475502d4ebc589b3543dfd8584da34a13a39299678f95df218e9262c101f12f07b780c321fa6e25be215ec25d9578c1261ad61249c6a5c8937fe01bd04c48cf906a5fe47ae244729f46b835fc2f48dbbc98bb169d8b617c58081305477abfe86e2a9e7e000593d56ce44709bba4e03ba5089f3fd3eccab94e511fece910b3604e869c952c96701834e89c59d4bb29177ecea503991dcda187b0f3d75dcf9e994443bd1c101ba68d8e4d678f18f6bf5dbe677f00bf174813bbd268bc39e457c7c28faed177e561425fe2b5e832703c09f3c10fbce678c3398a2385b1a7c45f5ac6ff354bb437fe833f9930203010001"
 
-        const tx = new Transaction(0, genesisNode, genesisNode, zero64Hex, "welcome home")
+        const tx = new Transaction(Date.now(), genesisNode, recipientKey, 500, "Welcome Home")
         tx.manualSign(genesisSignature)
-        const pnd = new UnminedBlock(version, zero256Hex, bits, [tx])
+        const pnd = new UnminedBlock(version, Date.now(), bits, [tx])
         await pnd.setId()
         const blk = new Block(pnd, 0)
         await blk.setMerkleRoot()

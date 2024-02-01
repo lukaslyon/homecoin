@@ -9,7 +9,7 @@ import axios from "axios";
 import { digest, publicKeyToHex } from "../crypto/subtle";
 
 // Chain and blockchain utilities
-import { Chain, reconstructBlock, reconstructChain, serializeBlock, serializeUnminedBlock, reconstructUnminedBlock, serializeChain, serializeUnminedBlocks } from "../chain/blockchain";
+import { Chain, reconstructBlock, reconstructChain, serializeBlock, serializeUnminedBlock, reconstructUnminedBlock, serializeChain, serializeUnminedBlocks, genesisNode } from "../chain/blockchain";
 
 // PeerJS utilities
 import { requestTypes, HeartbeatManager } from "../utilities/peerjs";
@@ -261,6 +261,7 @@ export const PeerProvider = (props) => {
 
     const lookupKnownPeer = (publicKey) => {
         if (publicKey === publicHex) return "you"
+        if (publicKey === genesisNode) return "homecoin network"
         let match = historicalPeers.find(p => p.publicKey === publicKey)
         if (match !== undefined) return match.label
         return publicKey
